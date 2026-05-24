@@ -10,7 +10,6 @@ from database.repositories import DealRepository, PriceRecordRepository, Product
 from scrapers.amazon import AmazonScraper
 from scrapers.base import BaseScraper
 from scrapers.deal_aggregator import DealAggregatorScraper
-from scrapers.ebay import EbayScraper
 from utils.price_utils import is_significant_discount
 
 
@@ -19,7 +18,6 @@ class DealHunter(BaseAgent):
 
     SCRAPER_MAP: dict[Marketplace, type[BaseScraper]] = {
         Marketplace.AMAZON: AmazonScraper,
-        Marketplace.EBAY: EbayScraper,
     }
 
     async def execute(self, session: AsyncSession):
@@ -74,9 +72,6 @@ class DealHunter(BaseAgent):
 
                     if avg_price is not None:
                         discount = float((1 - current_price / avg_price) * 100)
-                    elif marketplace == Marketplace.EBAY:
-                        avg_price = current_price * Decimal("1.35")
-                        discount = 25.0
                     else:
                         discount = 0.0
 
