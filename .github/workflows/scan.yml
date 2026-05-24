@@ -48,9 +48,10 @@ jobs:
         continue-on-error: true
 
       - name: Commit state
+        if: always()
         run: |
           git config user.name "DealScout Bot"
           git config user.email "bot@dealscout.ai"
-          git add data/
+          git add -f data/ 2>/dev/null || true
           git diff --quiet && git diff --staged --quiet || git commit -m "chore: update state [skip ci]"
-          git push
+          git push 2>/dev/null || true

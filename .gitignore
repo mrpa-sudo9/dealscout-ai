@@ -10,8 +10,9 @@ build/
 venv/
 
 # Dati runtime
-data/
-!data/.gitkeep
+data/logs/
+data/*.json
+data/*.pkl
 
 # Config
 .env
