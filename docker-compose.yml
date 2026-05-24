@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dealscout
+      POSTGRES_USER: dealscout
+      POSTGRES_PASSWORD: dealscout_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dealscout"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prefect:
+    image: prefecthq/prefect:3-python3.11
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: "http://0.0.0.0:4200/api"
+      PREFECT_SERVER_DATABASE_CONNECTION_URL: "postgresql+asyncpg://dealscout:dealscout_secret@db:5432/dealscout"
+    ports:
+      - "4200:4200"
+    command: prefect server start --host 0.0.0.0
+
+volumes:
+  pgdata:
+  redisdata:
