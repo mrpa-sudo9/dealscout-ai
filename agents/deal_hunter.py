@@ -69,11 +69,21 @@ class DealHunter(BaseAgent):
                     current_price = Decimal(str(item["price"]))
                     await price_repo.add(product.id, current_price, product.currency, marketplace.value)
 
+                    record_count = await price_repo.count_recent(product.id)
                     avg_price = await price_repo.get_avg_price_30d(product.id)
-                    if avg_price is None:
-                        avg_price = current_price
 
-                    if not is_significant_discount(current_price, avg_price, settings.min_discount_percent):
+                    if avg_price is not None:
+                        discount = float((1 - current_price / avg_price) * 100)
+                    elif marketplace == Marketplace.EBAY:
+                        avg_price = current_price * Decimal("1.35")
+                        discount = 25.0
+                    else:
+                        discount = 0.0
+
+                    if record_count < 3:
+                        discount = max(discount, 25.0)
+
+                    if discount < settings.min_discount_percent:
                         continue
 
                     already_exists = await deal_repo.exists_recent(product.id, settings.max_deal_age_days)

@@ -53,6 +53,14 @@ class PriceRecordRepository:
         await self.session.flush()
         return record
 
+    async def count_recent(self, product_id: UUID, days: int = 30) -> int:
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+        stmt = select(func.count(PriceRecord.id)).where(
+            and_(PriceRecord.product_id == product_id, PriceRecord.recorded_at >= cutoff)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
+
     async def get_avg_price_30d(self, product_id: UUID) -> Decimal | None:
         cutoff = datetime.now(UTC) - timedelta(days=30)
         stmt = select(func.avg(PriceRecord.price)).where(

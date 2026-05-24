@@ -18,6 +18,7 @@ class BaseAgent(ABC):
             factory = get_session_factory()
             async with factory() as session:
                 await self.execute(session)
+                await session.commit()
             self.log.info(f"[{self.name}] Execution completed successfully")
         except Exception as e:
             self.log.error(f"[{self.name}] Execution failed: {e}", exc_info=True)
