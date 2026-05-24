@@ -10,13 +10,10 @@ class AmazonScraper(BaseScraper):
 
     async def scrape(self) -> list[dict[str, Any]]:
         products = []
-        urls = [
-            f"{self.base_url}/gp/bestsellers",
-            f"{self.base_url}/deals",
-        ]
         seen_asins = set()
 
-        for url in urls:
+        for path in ["/gp/bestsellers"]:
+            url = f"{self.base_url}{path}"
             try:
                 soup = await self._fetch_soup(url)
                 for item in soup.select("[data-asin]"):
@@ -25,12 +22,12 @@ class AmazonScraper(BaseScraper):
                         continue
                     seen_asins.add(asin)
 
-                    name_el = item.select_one("span[id*='title']") or item.select_one("a span.a-truncate") or item.select_one("h2")
-                    price_el = item.select_one(".a-price-whole") or item.select_one(".a-offscreen")
+                    name_el = item.select_one("[class*=truncate]") or item.select_one("h2")
+                    price_el = item.select_one("[class*=price]")
+                    link_el = item.select_one("a[href*='/dp/']")
 
                     if not name_el:
                         continue
-
                     name = name_el.get_text(strip=True)[:500]
                     price_text = ""
                     if price_el:

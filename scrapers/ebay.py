@@ -1,45 +1,50 @@
+import re
 from typing import Any
-
-from bs4 import BeautifulSoup
 
 from scrapers.base import BaseScraper
 
 
 class EbayScraper(BaseScraper):
     marketplace = "ebay"
-    base_url = "https://www.ebay.it"
+    base_url = "https://www.ebay.com"
 
     async def scrape(self) -> list[dict[str, Any]]:
         products = []
-        urls = [
-            f"{self.base_url}/sch/Deals",
-            f"{self.base_url}/globaldeals",
-        ]
-        for url in urls:
-            try:
-                resp = await self._fetch(url)
-                soup = BeautifulSoup(resp.text, "lxml")
-                for item in soup.select(".s-item"):
-                    link_el = item.select_one(".s-item__link")
-                    price_el = item.select_one(".s-item__price")
-                    title_el = item.select_one(".s-item__title")
-                    if link_el and price_el and title_el:
-                        href = link_el.get("href", "")
-                        item_id = href.split("?")[0].split("/")[-1] if "/itm/" in href else ""
-                        products.append({
-                            "name": title_el.get_text(strip=True)[:500],
-                            "price": self._parse_price(price_el.get_text(strip=True)),
-                            "url": href,
-                            "sku": item_id,
-                            "currency": "EUR",
-                        })
-            except Exception as e:
-                self.log.warning(f"eBay scrape failed: {e}")
+        try:
+            soup = await self._fetch_soup(f"{self.base_url}/deals/")
+            for item in soup.select(".dne-itemtile"):
+                listing_id = item.get("data-listing-id", "")
+                title_el = item.select_one(".dne-itemtile-title")
+                price_el = item.select_one(".dne-itemtile-price")
+                link_el = item.select_one("a[href*='/itm/']")
+
+                if not title_el or not price_el:
+                    continue
+
+                price_text = price_el.get_text(strip=True)
+                price = self._parse_price(price_text)
+                if price == 0:
+                    meta = price_el.select_one("meta[itemprop='price']")
+                    if meta:
+                        price = float(meta.get("content", 0))
+
+                href = link_el.get("href", "") if link_el else f"https://www.ebay.com/itm/{listing_id}"
+
+                products.append({
+                    "name": title_el.get_text(strip=True)[:500],
+                    "price": price,
+                    "url": href,
+                    "sku": listing_id,
+                    "currency": "USD",
+                    "marketplace": "ebay",
+                })
+        except Exception as e:
+            self.log.warning(f"eBay scrape failed: {e}")
+
+        self.log.info(f"[eBay] Scraped {len(products)} products")
         return products
 
     def _parse_price(self, text: str) -> float:
-        text = text.replace("EUR", "").replace("euro", "").replace(" ", "").split(" a ")[0]
-        text = text.replace(",", ".")
-        import re
-        nums = re.findall(r"\d+\.?\d*", text)
+        text = text.replace("EUR", "").replace("euro", "").replace("$", "").replace(" ", "").split(" a ")[0]
+        nums = re.findall(r"\d+\.?\d*", text.replace(",", "."))
         return float(nums[0]) if nums else 0

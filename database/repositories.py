@@ -59,7 +59,8 @@ class PriceRecordRepository:
             and_(PriceRecord.product_id == product_id, PriceRecord.recorded_at >= cutoff)
         )
         result = await self.session.execute(stmt)
-        return result.scalar()
+        val = result.scalar()
+        return Decimal(str(val)) if val is not None else None
 
     async def get_latest_price(self, product_id: UUID) -> PriceRecord | None:
         stmt = (

@@ -7,19 +7,10 @@ from agents.base import BaseAgent
 from core.config import settings
 from database.models import DealStatus, Marketplace
 from database.repositories import DealRepository, PriceRecordRepository, ProductRepository
-from scrapers.aliexpress import AliExpressScraper
 from scrapers.amazon import AmazonScraper
 from scrapers.base import BaseScraper
-from scrapers.decathlon import DecathlonScraper
+from scrapers.deal_aggregator import DealAggregatorScraper
 from scrapers.ebay import EbayScraper
-from scrapers.etsy import EtsyScraper
-from scrapers.fnac import FnacScraper
-from scrapers.manomano import ManoManoScraper
-from scrapers.mediamarkt import MediaMarktScraper
-from scrapers.rakuten import RakutenScraper
-from scrapers.vinted import VintedScraper
-from scrapers.walmart import WalmartScraper
-from scrapers.zalando import ZalandoScraper
 from utils.price_utils import is_significant_discount
 
 
@@ -29,16 +20,6 @@ class DealHunter(BaseAgent):
     SCRAPER_MAP: dict[Marketplace, type[BaseScraper]] = {
         Marketplace.AMAZON: AmazonScraper,
         Marketplace.EBAY: EbayScraper,
-        Marketplace.ETSY: EtsyScraper,
-        Marketplace.ALIEXPRESS: AliExpressScraper,
-        Marketplace.DECATHLON: DecathlonScraper,
-        Marketplace.ZALANDO: ZalandoScraper,
-        Marketplace.MEDIAMARKT: MediaMarktScraper,
-        Marketplace.FNAC: FnacScraper,
-        Marketplace.VINTED: VintedScraper,
-        Marketplace.MANOMANO: ManoManoScraper,
-        Marketplace.WALMART: WalmartScraper,
-        Marketplace.RAKUTEN: RakutenScraper,
     }
 
     async def execute(self, session: AsyncSession):
@@ -48,15 +29,9 @@ class DealHunter(BaseAgent):
 
         semaphore = asyncio.Semaphore(settings.max_concurrent_scrapes)
 
-        async def scrape_marketplace(marketplace: Marketplace):
-            scraper_class = self.SCRAPER_MAP.get(marketplace)
-            if not scraper_class:
-                self.log.warning(f"No scraper for {marketplace}")
-                return []
-
+        async def scrape_marketplace(marketplace: Marketplace, scraper: BaseScraper):
             async with semaphore:
                 try:
-                    scraper = scraper_class()
                     products = await scraper.scrape()
                     self.log.info(f"[{marketplace}] Scraped {len(products)} products")
                     return products
@@ -64,10 +39,17 @@ class DealHunter(BaseAgent):
                     self.log.error(f"[{marketplace}] Scrape failed: {e}")
                     return []
 
-        tasks = [scrape_marketplace(mp) for mp in self.SCRAPER_MAP]
+        tasks = []
+        for mp, cls in self.SCRAPER_MAP.items():
+            tasks.append(scrape_marketplace(mp, cls()))
+
+        tasks.append(scrape_marketplace(Marketplace.AMAZON, DealAggregatorScraper()))
+
         results = await asyncio.gather(*tasks)
 
-        for marketplace, scraped_products in zip(self.SCRAPER_MAP.keys(), results):
+        marketplaces = list(self.SCRAPER_MAP.keys()) + [Marketplace.AMAZON]
+
+        for marketplace, scraped_products in zip(marketplaces, results):
             for item in scraped_products:
                 try:
                     product = await product_repo.get_or_create(
