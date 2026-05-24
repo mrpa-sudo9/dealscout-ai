@@ -1,3 +1,5 @@
+import asyncio
+import re
 from typing import Any
 
 from core.config import settings
@@ -6,11 +8,10 @@ from utils.logger import log
 
 
 class ContentGenerator:
-    SYSTEM_PROMPT = """Sei un esperto copywriter specializzato nella promozione di offerte shopping online. 
-Devi creare contenuti in italiano per promuovere un prodotto scontato.
-
-Tono di voce: entusiasta ma affidabile, senza esagerazioni. Non usare mai parole come "imperdibile" o "pazzesco", 
-sii concreto. Includi sempre una nota di urgenza solo se reale (es. offerta a tempo). 
+    SYSTEM_PROMPT = """Sei un esperto copywriter italiano specializzato nella promozione di offerte shopping online.
+TUTTI i contenuti DEVONO essere in ITALIANO. Traduci in italiano anche il nome del prodotto se necessario.
+Tono di voce: entusiasta ma affidabile, senza esagerazioni. Non usare mai parole come "imperdibile" o "pazzesco",
+sii concreto. Includi sempre una nota di urgenza solo se reale (es. offerta a tempo).
 Non inventare caratteristiche non presenti nei dati forniti."""
 
     async def generate_all(self, payload: dict[str, Any]) -> dict[ChannelType, str]:
@@ -23,39 +24,69 @@ Non inventare caratteristiche non presenti nei dati forniti."""
         return self._fallback_templates(payload)
 
     def _build_prompt(self, p: dict) -> str:
-        return f"""Genera i seguenti contenuti per il prodotto, ciascuno separato da "---" e con l'indicazione del canale:
+        desc = p.get("description", "")
+        features = p.get("key_features", {})
+        features_text = ""
+        if features:
+            if isinstance(features, dict):
+                features_text = "\n".join(f"  - {k}: {v}" for k, v in features.items())
+            elif isinstance(features, list):
+                features_text = "\n".join(f"  - {f}" for f in features)
+
+        return f"""Genera i seguenti contenuti in ITALIANO per il prodotto. Traduci in italiano nome e descrizione.
+Ciascun contenuto separato da "---" con l'indicazione del canale.
 
 Dati prodotto:
-- Nome: {p['product_name']}
+- Nome: {p['product_name']} (TRADURRE IN ITALIANO se in inglese)
 - Prezzo attuale: {p['current_price']}€
 - Prezzo medio: {p['avg_price']}€
 - Sconto: {p['discount']}%
 - Piattaforma: {p['marketplace']}
 - Link: {p['affiliate_link']}
+- Descrizione: {desc or "N/A"}{f"\n- Caratteristiche:\n{features_text}" if features_text else ""}
 
-1. **TWITTER**: 4 tweet separati da "|". Primo hook forte con sconto. Terzo tweet col link.
-2. **TELEGRAM**: Messaggio breve di 3-4 righe con emoji e link.
-3. **FACEBOOK**: Post 150-200 parole, tono amichevole, finisce con "Acquistalo qui 👉 [link]"
-4. **INSTAGRAM**: 5 slide per carosello. Slide 1: hook. Slide 2-4: caratteristiche. Slide 5: CTA.
-5. **PINTEREST**: Descrizione SEO 2-3 righe con hashtag e link.
-6. **WORDPRESS**: Titolo SEO, meta description, articolo 500+ parole con 3 sottotitoli H2.
-7. **REDDIT**: Post 100-150 parole che sembra un consiglio genuino, non pubblicità.
-8. **NEWSLETTER**: Oggetto (max 50 char) + corpo email con storia d'uso e CTA."""
+1. **TWITTER**: 4 tweet in ITALIANO separati da "|". Primo hook forte con sconto. Terzo tweet col link.
+2. **TELEGRAM**: Messaggio breve in ITALIANO di 3-4 righe con emoji e link.
+3. **FACEBOOK**: Post in ITALIANO 150-200 parole, tono amichevole, finisce con "Acquistalo qui 👉 [link]"
+4. **INSTAGRAM**: 5 slide in ITALIANO per carosello. Slide 1: hook. Slide 2-4: caratteristiche. Slide 5: CTA.
+5. **PINTEREST**: Descrizione SEO in ITALIANO 2-3 righe con hashtag e link.
+6. **WORDPRESS**: Titolo SEO in ITALIANO, meta description, articolo 500+ parole con 3 sottotitoli H2.
+7. **REDDIT**: Post in ITALIANO 100-150 parole che sembra un consiglio genuino, non pubblicità.
+8. **NEWSLETTER**: Oggetto in ITALIANO (max 50 char) + corpo email con storia d'uso e CTA."""
 
     async def _call_llm(self, prompt: str) -> str | None:
         if settings.gemini_api_key:
-            try:
-                from google import genai
-                client = genai.Client(api_key=settings.gemini_api_key)
-                resp = await client.aio.models.generate_content(
-                    model=settings.gemini_model,
-                    contents=prompt,
-                    config={"system_instruction": self.SYSTEM_PROMPT},
-                )
-                if resp.text:
-                    return resp.text
-            except Exception as e:
-                log.warning(f"Gemini API failed: {e}")
+            last_error = None
+            for attempt in range(3):
+                try:
+                    from google import genai
+                    from google.genai import errors as genai_errors
+                    client = genai.Client(api_key=settings.gemini_api_key)
+                    resp = await client.aio.models.generate_content(
+                        model=settings.gemini_model,
+                        contents=prompt,
+                        config={"system_instruction": self.SYSTEM_PROMPT},
+                    )
+                    if resp.text:
+                        return resp.text
+                except genai_errors.ClientError as e:
+                    last_error = e
+                    if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e):
+                        delay = 5
+                        match = re.search(r'retryDelay["\':\s]+(\d+)s', str(e))
+                        if match:
+                            delay = int(match.group(1))
+                        log.warning(f"Gemini quota exhausted, retrying in {delay}s (attempt {attempt+1}/3)")
+                        await asyncio.sleep(delay)
+                        continue
+                    log.warning(f"Gemini API client error: {e}")
+                    break
+                except Exception as e:
+                    last_error = e
+                    log.warning(f"Gemini API failed (attempt {attempt+1}/3): {e}")
+                    await asyncio.sleep(2)
+            if last_error:
+                log.warning(f"Gemini API permanently failed: {last_error}")
 
         if settings.groq_api_key:
             try:
