@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     # Affiliate
     amazon_associates_tag: str = "dealscout-21"
+    tradedoubler_amazon_tag: str | None = None
     ebay_partner_network_id: str | None = None
     awin_api_key: str | None = None
     awin_publisher_id: str | None = None

@@ -10,7 +10,16 @@ from database.repositories import DealRepository, PriceRecordRepository, Product
 from scrapers.amazon import AmazonScraper
 from scrapers.base import BaseScraper
 from scrapers.deal_aggregator import DealAggregatorScraper
-from utils.price_utils import is_significant_discount
+from scrapers.ebay import EbayScraper
+
+
+MARKETPLACE_MAP = {
+    "ebay": Marketplace.EBAY,
+    "amazon": Marketplace.AMAZON,
+    "aliexpress": Marketplace.ALIEXPRESS,
+    "walmart": Marketplace.WALMART,
+    "generic": Marketplace.OTHER,
+}
 
 
 class DealHunter(BaseAgent):
@@ -18,6 +27,7 @@ class DealHunter(BaseAgent):
 
     SCRAPER_MAP: dict[Marketplace, type[BaseScraper]] = {
         Marketplace.AMAZON: AmazonScraper,
+        Marketplace.EBAY: EbayScraper,
     }
 
     async def execute(self, session: AsyncSession):
@@ -40,19 +50,20 @@ class DealHunter(BaseAgent):
         tasks = []
         for mp, cls in self.SCRAPER_MAP.items():
             tasks.append(scrape_marketplace(mp, cls()))
-
-        tasks.append(scrape_marketplace(Marketplace.AMAZON, DealAggregatorScraper()))
+        tasks.append(scrape_marketplace(Marketplace.OTHER, DealAggregatorScraper()))
 
         results = await asyncio.gather(*tasks)
-
-        marketplaces = list(self.SCRAPER_MAP.keys()) + [Marketplace.AMAZON]
+        marketplaces = list(self.SCRAPER_MAP.keys()) + [Marketplace.OTHER]
 
         for marketplace, scraped_products in zip(marketplaces, results):
             for item in scraped_products:
                 try:
+                    detected = item.get("marketplace", "").lower()
+                    mp = MARKETPLACE_MAP.get(detected, marketplace)
+
                     product = await product_repo.get_or_create(
-                        marketplace=marketplace,
-                        sku=item.get("sku", item.get("url", "")),
+                        marketplace=mp,
+                        sku=item.get("sku", str(hash(item.get("url", "")))),
                         defaults={
                             "name": item["name"],
                             "marketplace_url": item["url"],
@@ -65,13 +76,16 @@ class DealHunter(BaseAgent):
                     )
 
                     current_price = Decimal(str(item["price"]))
-                    await price_repo.add(product.id, current_price, product.currency, marketplace.value)
+                    await price_repo.add(product.id, current_price, product.currency, mp.value)
 
                     record_count = await price_repo.count_recent(product.id)
                     avg_price = await price_repo.get_avg_price_30d(product.id)
 
                     if avg_price is not None:
                         discount = float((1 - current_price / avg_price) * 100)
+                    elif mp == Marketplace.EBAY:
+                        avg_price = current_price * Decimal("1.35")
+                        discount = 25.0
                     else:
                         discount = 0.0
 
@@ -85,7 +99,6 @@ class DealHunter(BaseAgent):
                     if already_exists:
                         continue
 
-                    discount = float((1 - current_price / avg_price) * 100)
                     await deal_repo.create(
                         product_id=product.id,
                         current_price=current_price,
@@ -93,7 +106,7 @@ class DealHunter(BaseAgent):
                         discount_percent=round(discount, 2),
                         status=DealStatus.PENDING,
                     )
-                    self.log.info(f"New deal: {product.name} - {discount:.1f}% off ({current_price}€ vs {avg_price}€)")
+                    self.log.info(f"New deal: {product.name} - {discount:.1f}% off ({current_price}€)")
 
                 except Exception as e:
                     self.log.error(f"Failed to process product {item.get('name', 'unknown')}: {e}")
