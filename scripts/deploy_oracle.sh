@@ -85,7 +85,12 @@ SCRAPE_FREQUENCY_HOURS=6
 MAX_CONCURRENT_SCRAPES=3
 REQUEST_TIMEOUT=30
 
-# 🔑 API Keys (DA MODIFICARE)
+# 🔑 LLM (almeno uno richiesto - Gemini è gratis!)
+# Ottieni Gemini key: https://aistudio.google.com/apikey
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.0-flash
+
+# 🔑 API Keys opzionali
 GROQ_API_KEY=
 AMAZON_ASSOCIATES_TAG=dealscout-21
 TWITTER_API_KEY=

@@ -42,10 +42,13 @@ sudo systemctl start dealscout.service
 
 ## ☁️ Alternativa: GitHub Actions (zero server)
 
-Attiva il workflow `.github/workflows/scan.yml`. Aggiungi i secrets in `Settings → Secrets and variables → Actions`:
-- `GROQ_API_KEY`, `TWITTER_API_KEY`, ecc.
+1. Vai su https://aistudio.google.com/apikey → **Get API Key** → copia la chiave `AIza...`
+2. Attiva il workflow `.github/workflows/scan.yml`
+3. Aggiungi i secrets in `Settings → Secrets and variables → Actions`:
+   - `GEMINI_API_KEY` (la chiave `AIza...`) — **unico required per l'AI**
+   - `GROQ_API_KEY`, `TWITTER_API_KEY` ecc. (opzionali)
 
-Il workflow gira ogni 6 ore gratis (contra 2.000 minuti/mese).
+Il workflow gira ogni 6 ore gratis (2.000 minuti/mese inclusi).
 
 ---
 
@@ -76,7 +79,7 @@ dealscout monitor
 |-------|-----------|
 | **Agenti** | Deal Hunter → Affiliation Manager → Content Creator → Distribution Manager |
 | **Scraping** | 12 marketplace (Amazon, eBay, Etsy, AliExpress, Decathlon, Zalando, MediaMarkt, Fnac, Vinted, ManoMano, Walmart, Rakuten) |
-| **AI** | Groq (Llama 3.3 70B) / OpenAI fallback per generazione contenuti |
+| **AI** | Google Gemini 2.0 Flash (gratuito) / Groq / OpenAI fallback |
 | **Distribuzione** | Twitter, Telegram, Facebook, Instagram, Pinterest, WordPress, Reddit, Newsletter |
 | **DB** | SQLite (dev) / PostgreSQL (prod) |
 | **Scheduling** | systemd timer (VM) / GitHub Actions (serverless) |

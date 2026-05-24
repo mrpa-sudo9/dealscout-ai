@@ -22,6 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e .
+          pip install 'google-genai>=1.0' 2>/dev/null || true
           python -m playwright install chromium 2>/dev/null || true
 
       - name: Create .env
@@ -30,6 +31,8 @@ jobs:
           DATABASE_URL=sqlite+aiosqlite:///data/dealscout.db
           LOG_LEVEL=INFO
           MIN_DISCOUNT_PERCENT=20
+          GEMINI_API_KEY=\${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL=gemini-2.0-flash
           GROQ_API_KEY=\${{ secrets.GROQ_API_KEY }}
           AMAZON_ASSOCIATES_TAG=dealscout-21
           TWITTER_API_KEY=\${{ secrets.TWITTER_API_KEY }}

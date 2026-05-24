@@ -31,6 +31,7 @@ dependencies = [
     "tenacity>=8.3",
     "loguru>=0.7",
     "aiocron>=1.8",
+    "google-genai>=1.0",
 ]
 
 [tool.setuptools.packages.find]

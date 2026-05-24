@@ -43,6 +43,20 @@ Dati prodotto:
 8. **NEWSLETTER**: Oggetto (max 50 char) + corpo email con storia d'uso e CTA."""
 
     async def _call_llm(self, prompt: str) -> str | None:
+        if settings.gemini_api_key:
+            try:
+                from google import genai
+                client = genai.Client(api_key=settings.gemini_api_key)
+                resp = await client.aio.models.generate_content(
+                    model=settings.gemini_model,
+                    contents=prompt,
+                    config={"system_instruction": self.SYSTEM_PROMPT},
+                )
+                if resp.text:
+                    return resp.text
+            except Exception as e:
+                log.warning(f"Gemini API failed: {e}")
+
         if settings.groq_api_key:
             try:
                 from groq import AsyncGroq

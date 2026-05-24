@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # LLM
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.0-flash"
     groq_api_key: str | None = None
     groq_model: str = "llama3-70b-8192"
     openai_api_key: str | None = None
