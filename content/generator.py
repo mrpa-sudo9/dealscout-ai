@@ -55,9 +55,38 @@ Dati prodotto:
 8. **NEWSLETTER**: Oggetto in ITALIANO (max 50 char) + corpo email con storia d'uso e CTA."""
 
     async def _call_llm(self, prompt: str) -> str | None:
+        if settings.openrouter_api_key:
+            models = ["openrouter/free", "google/gemma-4-26b-a4b-it:free"]
+            for model in models:
+                for attempt in range(3):
+                    try:
+                        from openai import AsyncOpenAI
+                        client = AsyncOpenAI(
+                            api_key=settings.openrouter_api_key,
+                            base_url="https://openrouter.ai/api/v1",
+                        )
+                        resp = await client.chat.completions.create(
+                            model=model,
+                            messages=[
+                                {"role": "system", "content": self.SYSTEM_PROMPT},
+                                {"role": "user", "content": prompt},
+                            ],
+                            temperature=0.7,
+                            max_tokens=4096,
+                        )
+                        if resp and resp.choices and resp.choices[0].message.content:
+                            return resp.choices[0].message.content
+                    except Exception as e:
+                        if "429" in str(e) or "rate-limited" in str(e).lower():
+                            delay = 10 + 5 * attempt
+                            log.warning(f"OpenRouter ({model}) rate-limited, retry {attempt+1}/3 in {delay}s")
+                            await asyncio.sleep(delay)
+                        else:
+                            log.warning(f"OpenRouter ({model}) failed: {e}")
+                            break
+
         if settings.gemini_api_key:
-            last_error = None
-            for attempt in range(3):
+            for attempt in range(2):
                 try:
                     from google import genai
                     from google.genai import errors as genai_errors
@@ -70,23 +99,15 @@ Dati prodotto:
                     if resp.text:
                         return resp.text
                 except genai_errors.ClientError as e:
-                    last_error = e
                     if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e):
-                        delay = 5
-                        match = re.search(r'retryDelay["\':\s]+(\d+)s', str(e))
-                        if match:
-                            delay = int(match.group(1))
-                        log.warning(f"Gemini quota exhausted, retrying in {delay}s (attempt {attempt+1}/3)")
-                        await asyncio.sleep(delay)
+                        log.warning(f"Gemini quota exhausted (attempt {attempt+1}/2)")
+                        await asyncio.sleep(2)
                         continue
                     log.warning(f"Gemini API client error: {e}")
                     break
                 except Exception as e:
-                    last_error = e
-                    log.warning(f"Gemini API failed (attempt {attempt+1}/3): {e}")
+                    log.warning(f"Gemini API failed (attempt {attempt+1}/2): {e}")
                     await asyncio.sleep(2)
-            if last_error:
-                log.warning(f"Gemini API permanently failed: {last_error}")
 
         if settings.groq_api_key:
             try:

@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     groq_model: str = "llama3-70b-8192"
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openrouter/free"
 
     # Affiliate
     amazon_associates_tag: str = "dealscout-21"

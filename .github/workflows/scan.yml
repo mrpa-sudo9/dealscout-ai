@@ -33,7 +33,9 @@ jobs:
           MIN_DISCOUNT_PERCENT=20
           GEMINI_API_KEY=\${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL=gemini-2.0-flash
-          GROQ_API_KEY=\${{ secrets.GROQ_API_KEY }}
+           GROQ_API_KEY=\${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY=\${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL=\${{ secrets.OPENROUTER_MODEL }}
           AMAZON_ASSOCIATES_TAG=dealscout-21
           TRADEDOUBLER_AMAZON_TAG=\${{ secrets.TRADEDOUBLER_AMAZON_TAG }}
           EBAY_PARTNER_NETWORK_ID=\${{ secrets.EBAY_PARTNER_NETWORK_ID }}
