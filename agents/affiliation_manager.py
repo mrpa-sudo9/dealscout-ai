@@ -40,6 +40,8 @@ class AffiliationManager(BaseAgent):
             return settings.tradedoubler_amazon_tag or settings.amazon_associates_tag
         if ml == "ebay":
             return settings.ebay_partner_network_id
+        if ml == "aliexpress":
+            return settings.aliexpress_tracking_id
         return None
 
     def _generate_link(self, original_url: str, marketplace: str, tag: str | None) -> str:

@@ -18,9 +18,10 @@ class Settings(BaseSettings):
     openrouter_model: str = "openrouter/free"
 
     # Affiliate
-    amazon_associates_tag: str = "dealscout-21"
+    amazon_associates_tag: str = "mrpa96-21"
     tradedoubler_amazon_tag: str | None = None
     ebay_partner_network_id: str | None = None
+    aliexpress_tracking_id: str = "default"
     awin_api_key: str | None = None
     awin_publisher_id: str | None = None
     admitad_api_key: str | None = None
@@ -60,7 +61,7 @@ class Settings(BaseSettings):
     user_agent_rotate: bool = True
 
     # Deal filtering
-    min_discount_percent: float = 20.0
+    min_discount_percent: float = 15.0
     max_deal_age_days: int = 30
     price_history_days: int = 30
 

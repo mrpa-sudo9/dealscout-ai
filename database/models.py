@@ -42,6 +42,7 @@ class Marketplace(str, enum.Enum):
     MANOMANO = "manomano"
     WALMART = "walmart"
     RAKUTEN = "rakuten"
+    OTHER = "other"
 
 
 def utcnow():

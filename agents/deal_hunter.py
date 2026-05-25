@@ -21,6 +21,55 @@ MARKETPLACE_MAP = {
     "generic": Marketplace.OTHER,
 }
 
+NICHE_CATEGORIES = {"fashion", "toys", "sports", "beauty"}
+
+NICHE_KEYWORDS = {
+    "fashion": [
+        "abbigliamento", "scarpe", "stivali", "sandali", "maglietta", "camicia",
+        "pantaloni", "jeans", "giacca", "giacche", "cappotto", "vestito", "abito",
+        "gonna", "costume", "borsa", "zaino", "portafoglio", "cintura", "orologio",
+        "bracciale", "collana", "anello", "occhiali", "moda", "fashion", "shoes",
+        "bag", "tuta", "felpa", "polo", "bermuda", "cappello", "sneaker",
+    ],
+    "toys": [
+        "giocattolo", "giocattoli", "giochi", "gioco", "lego", "barbie", "peluche",
+        "action figure", "puzzle", "costruzioni", "macchinina", "trenino", "palla",
+        "triciclo", "bicicletta bambino", "monopattino bambino", "tavolo gioco",
+        "cucina gioco", "pista", "robot gioco", "toys", "toy",
+    ],
+    "sports": [
+        "sport", "fitness", "palestra", "corsa", "running", "bicicletta", "bici",
+        "cyclette", "tapis roulant", "pesi", "manubri", "yoga", "tappetino",
+        "scarpe sportive", "pallone", "palla calcio", "racchetta", "casco",
+        "protezioni sport", "kayak", "nuoto", "cuffia", "zaino sportivo",
+        "sacca sport", "borraccia", "smartwatch sport", "activity tracker",
+    ],
+    "beauty": [
+        "bellezza", "makeup", "make-up", "cosmetico", "cosmetici", "profumo",
+        "crema", "siero", "shampoo", "balsamo", "maschera viso", "fondotinta",
+        "rossetto", "mascara", "pallet ombretti", "smalto", "struccante",
+        "detergente viso", "idratante", "antirughe", "acqua micellare",
+        "spazzola capelli", "phon", "arricciacapelli", "rasoio", "depilatore",
+        "beauty", "makeup", "cosmetics", "skincare",
+    ],
+}
+
+CATEGORY_KEYWORD_MAP = {}
+for cat, keywords in NICHE_KEYWORDS.items():
+    for kw in keywords:
+        CATEGORY_KEYWORD_MAP[kw] = cat
+
+
+def detect_category(item: dict) -> str | None:
+    explicit = item.get("category")
+    if explicit and explicit in NICHE_CATEGORIES:
+        return explicit
+    name = (item.get("name") or "").lower()
+    for keyword, category in CATEGORY_KEYWORD_MAP.items():
+        if keyword in name:
+            return category
+    return None
+
 
 class DealHunter(BaseAgent):
     name = "DealHunter"
@@ -60,6 +109,9 @@ class DealHunter(BaseAgent):
                 try:
                     detected = item.get("marketplace", "").lower()
                     mp = MARKETPLACE_MAP.get(detected, marketplace)
+                    product_category = detect_category(item)
+                    if not product_category:
+                        continue
 
                     product = await product_repo.get_or_create(
                         marketplace=mp,
@@ -70,7 +122,7 @@ class DealHunter(BaseAgent):
                             "image_url": item.get("image_url"),
                             "description": item.get("description"),
                             "key_features": item.get("features"),
-                            "category": item.get("category"),
+                            "category": product_category,
                             "currency": item.get("currency", "EUR"),
                         },
                     )
@@ -106,7 +158,7 @@ class DealHunter(BaseAgent):
                         discount_percent=round(discount, 2),
                         status=DealStatus.PENDING,
                     )
-                    self.log.info(f"New deal: {product.name} - {discount:.1f}% off ({current_price}€)")
+                    self.log.info(f"New deal: [{product_category}] {product.name} - {discount:.1f}% off ({current_price}€)")
 
                 except Exception as e:
                     self.log.error(f"Failed to process product {item.get('name', 'unknown')}: {e}")

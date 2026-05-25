@@ -33,7 +33,7 @@ class DistributionManager(BaseAgent):
 
         for channel_type, publisher_class in self.PUBLISHER_MAP.items():
             try:
-                unpublished = await content_repo.get_unpublished(channel=channel_type.value, limit=5)
+                unpublished = await content_repo.get_unpublished(channel=channel_type.value, limit=30)
                 if not unpublished:
                     self.log.info(f"No unpublished content for {channel_type.value}")
                     continue
