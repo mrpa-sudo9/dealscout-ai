@@ -33,6 +33,10 @@ Non inventare caratteristiche non presenti nei dati forniti."""
             elif isinstance(features, list):
                 features_text = "\n".join(f"  - {f}" for f in features)
 
+        features_section = ""
+        if features_text:
+            features_section = "\n- Caratteristiche:\n" + features_text
+
         return f"""Genera i seguenti contenuti in ITALIANO per il prodotto. Traduci in italiano nome e descrizione.
 Ciascun contenuto separato da "---" con l'indicazione del canale.
 
@@ -43,7 +47,7 @@ Dati prodotto:
 - Sconto: {p['discount']}%
 - Piattaforma: {p['marketplace']}
 - Link: {p['affiliate_link']}
-- Descrizione: {desc or "N/A"}{f"\n- Caratteristiche:\n{features_text}" if features_text else ""}
+- Descrizione: {desc or "N/A"}{features_section}
 
 1. **TWITTER**: 4 tweet in ITALIANO separati da "|". Primo hook forte con sconto. Terzo tweet col link.
 2. **TELEGRAM**: Messaggio breve in ITALIANO di 3-4 righe con emoji e link.
