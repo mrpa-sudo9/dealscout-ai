@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.base import BaseAgent
 from content.generator import ContentGenerator
-from database.models import DealStatus
+from database.models import ChannelType, DealStatus
 from database.repositories import ContentRepository, DealRepository
 
 
@@ -19,8 +19,7 @@ class ContentCreator(BaseAgent):
         ready_deals = await deal_repo.get_affiliate_ready(limit=50)
         self.log.info(f"Creating content for {len(ready_deals)} deals")
 
-        gemini_exhausted = False
-        for idx, deal in enumerate(ready_deals):
+        for deal in ready_deals:
             try:
                 product = deal.product
                 content_payload = {
@@ -35,16 +34,8 @@ class ContentCreator(BaseAgent):
                     "image_url": product.image_url or "",
                 }
 
-                use_llm = not gemini_exhausted and idx < 30
-                if use_llm:
-                    await asyncio.sleep(1.5)
-                    contents = await generator.generate_all(content_payload)
-                    tel_content = contents.get(ChannelType.TELEGRAM, "")
-                    if "🏷️" in tel_content and "💰" in tel_content:
-                        gemini_exhausted = True
-                        self.log.info("Gemini quota exhausted, switching to fallback for remaining deals")
-                else:
-                    contents = generator._fallback_templates(content_payload)
+                await asyncio.sleep(1.5)
+                contents = await generator.generate_all(content_payload)
 
                 for channel_type, text in contents.items():
                     await content_repo.create(
@@ -54,7 +45,20 @@ class ContentCreator(BaseAgent):
                     )
 
                 await deal_repo.update_status(deal.id, DealStatus.CONTENT_READY)
-                self.log.info(f"Content created for deal {deal.id} ({'LLM' if use_llm else 'fallback'})")
+                self.log.info(f"Content created for deal {deal.id} (LLM)")
 
             except Exception as e:
                 self.log.error(f"Content generation failed for deal {deal.id}: {e}")
+                try:
+                    contents = generator._fallback_templates(content_payload)
+                    for channel_type, text in contents.items():
+                        await content_repo.create(
+                            deal_id=deal.id,
+                            channel=channel_type,
+                            body=text,
+                        )
+                    await deal_repo.update_status(deal.id, DealStatus.CONTENT_READY)
+                    self.log.info(f"Fallback content created for deal {deal.id}")
+                except Exception as e2:
+                    self.log.error(f"Fallback also failed for deal {deal.id}: {e2}")
+                    await deal_repo.update_status(deal.id, DealStatus.FAILED)
