@@ -1,3 +1,5 @@
+import asyncio
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.base import BaseAgent
@@ -43,8 +45,12 @@ class DistributionManager(BaseAgent):
                 for content in unpublished:
                     try:
                         external_id = await publisher.publish(content)
+                        if not external_id:
+                            self.log.warning(f"Skipping {channel_type.value}:{content.id} — publish returned no ID")
+                            continue
                         await content_repo.mark_published(content.id, external_id)
                         self.log.info(f"Published to {channel_type.value}: {content.id} (post_id={external_id})")
+                        await asyncio.sleep(2)
                     except Exception as e:
                         self.log.error(f"Failed to publish to {channel_type.value}: {e}")
 

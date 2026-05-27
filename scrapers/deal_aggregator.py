@@ -20,7 +20,16 @@ class DealAggregatorScraper(BaseScraper):
     FEEDS = [
         "https://www.pepper.it/deals/feed/rss",
         "https://www.pepper.it/deals/feed/rss?category=3",
+        "https://www.pepper.it/tag/amazon/feed/rss",
+        "https://www.pepper.it/tag/offerte-sport/feed/rss",
+        "https://www.pepper.it/tag/cucina/feed/rss",
+        "https://www.pepper.it/tag/bellezza/feed/rss",
+        "https://www.pepper.it/tag/tecnologia/feed/rss",
+        "https://www.pepper.it/tag/moda-trendy/feed/rss",
+        "https://www.pepper.it/tag/animali-domestici/feed/rss",
+        "https://www.pepper.it/tag/salute/feed/rss",
         "https://www.mydealz.de/deals/feed/rss",
+        "https://www.mydealz.de/deals/feed/rss?category=3",
     ]
 
     async def scrape(self) -> list[dict[str, Any]]:
