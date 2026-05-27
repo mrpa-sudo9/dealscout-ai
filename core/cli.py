@@ -39,6 +39,7 @@ def _run_scan(args):
     from agents.affiliation_manager import AffiliationManager
     from agents.content_creator import ContentCreator
     from agents.distribution_manager import DistributionManager
+    from agents.product_spotlighter import ProductSpotlighter
 
     async def pipeline():
         await init_db()
@@ -52,8 +53,11 @@ def _run_scan(args):
             await AffiliationManager().run()
 
         if not args.hunt_only and not args.affiliate_only and not args.distribute_only or args.content_only:
-            log.info("=== FASE 3: Creazione Contenuti ===")
+            log.info("=== FASE 3a: Creazione Contenuti Deal ===")
             await ContentCreator().run()
+
+            log.info("=== FASE 3b: Product Spotlight ===")
+            await ProductSpotlighter().run()
 
         if not args.hunt_only and not args.affiliate_only and not args.content_only or args.distribute_only:
             log.info("=== FASE 4: Distribuzione ===")

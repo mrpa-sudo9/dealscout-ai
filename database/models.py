@@ -11,6 +11,7 @@ from database.session import Base
 
 class DealStatus(str, enum.Enum):
     PENDING = "pending"
+    SPOTLIGHT = "spotlight"
     AFFILIATE_READY = "affiliate_ready"
     CONTENT_READY = "content_ready"
     PUBLISHED = "published"

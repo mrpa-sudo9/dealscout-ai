@@ -126,6 +126,7 @@ def render_category_page(niche: str, products_with_prices: list) -> str:
             <h1>{meta['icon']} {meta['name']}</h1>
             <p>{meta['description']}</p>
             <p class="commission-note">Commissione Amazon: {meta['commission']}</p>
+            <p><a href="guida-{niche}.html" class="guide-link">📖 Leggi la guida all'acquisto</a></p>
         </div>
 
         <div class="products-grid">
@@ -352,6 +353,8 @@ body {
 .category-header h1 { font-size: 2rem; }
 .category-header p { color: var(--text-light); }
 .commission-note { font-size: 0.85rem; color: var(--primary); margin-top: 0.5rem; }
+.guide-link { display: inline-block; margin-top: 0.8rem; padding: 0.5rem 1.2rem; background: var(--primary); color: white !important; border-radius: 8px; text-decoration: none; font-size: 0.9rem; transition: background 0.2s; }
+.guide-link:hover { background: var(--primary-dark); }
 
 /* Products Grid */
 .products-grid {
@@ -425,6 +428,19 @@ body {
 }
 .footer p { margin-bottom: 0.5rem; }
 
+/* Guide Content */
+.guide-content { padding: 2rem 0; max-width: 800px; }
+.guide-content h2 { color: var(--secondary); margin: 2rem 0 1rem; font-size: 1.5rem; }
+.guide-content h3 { color: var(--primary); margin: 1.5rem 0 0.8rem; font-size: 1.2rem; }
+.guide-content p { margin-bottom: 1rem; line-height: 1.8; }
+.guide-content ul { margin: 1rem 0; padding-left: 1.5rem; }
+.guide-content li { margin-bottom: 0.5rem; line-height: 1.6; }
+.guide-content a { color: var(--primary); text-decoration: underline; }
+.guide-content a:hover { color: var(--primary-dark); }
+.guide-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.guide-content td, .guide-content th { padding: 0.75rem; border: 1px solid var(--border); text-align: left; }
+.guide-content th { background: var(--secondary); color: white; }
+
 /* Responsive */
 @media (max-width: 768px) {
     .hero h1 { font-size: 1.8rem; }
@@ -435,7 +451,57 @@ body {
 """
 
 
+GUIDE_INFO = {
+    niche: {"title": meta["name"], "desc": meta["description"]}
+    for niche, meta in NICHE_META.items()
+}
+
+
+def render_guide_page(niche: str, guide_html: str, seo_title: str, seo_desc: str) -> str:
+    return f"""<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{seo_title} - PrezziMigliori</title>
+    <meta name="description" content="{seo_desc}">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">🏷️ PrezziMigliori</a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="{niche}.html">{NICHE_META[niche]["name"]}</a>
+                <a href="deals.html">Offerte</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container guide-content">
+        {guide_html}
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <p>PrezziMigliori - Confronto prezzi indipendente. I link sono affiliati Amazon, eBay e AliExpress.</p>
+            <p>&copy; 2026 PrezziMigliori</p>
+        </div>
+    </footer>
+</body>
+</html>"""
+
+
+def render_sitemap(all_urls: list[str]) -> str:
+    urls_xml = "\n".join(f"  <url><loc>{u}</loc></url>" for u in all_urls)
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{urls_xml}
+</urlset>"""
+
+
 async def main():
+    from content.guide_generator import GuideGenerator, NICHE_GUIDE_CONFIG
+
     await init_db()
 
     out_dir = Path("/tmp/prezzimigliori")
@@ -485,7 +551,42 @@ async def main():
         (out_dir / "style.css").write_text(STYLE_CSS, encoding="utf-8")
         print("Generated style.css")
 
-    print("\n✅ Catalogo generato!")
+        guide_generator = GuideGenerator()
+        for niche in NICHE_META:
+            niche_products = [(p, get_price(p)) for p in all_products if p.category == niche]
+            if len(niche_products) < 3:
+                continue
+            product_data = [
+                {"name": p.name, "price": price, "link": p.marketplace_url, "category": p.category}
+                for p, price in niche_products
+            ]
+            guide = await guide_generator.generate_guide(niche, product_data)
+            if guide and guide.get("html"):
+                guide_html = render_guide_page(niche, guide["html"], guide["seo_title"], guide["seo_desc"])
+                (out_dir / f"guida-{niche}.html").write_text(guide_html, encoding="utf-8")
+                print(f"Generated guida-{niche}.html")
+                await asyncio.sleep(1.5)
+
+            if len(niche_products) >= 4:
+                comp = await guide_generator.generate_comparison(product_data[:4], niche)
+                if comp and comp.get("html"):
+                    comp_html = render_guide_page(niche, comp["html"], f"Confronto {comp['products'][0]} vs {comp['products'][1]}", f"Confronto tra {comp['products'][0]} e {comp['products'][1]}")
+                    slug = f"confronto-{niche}"
+                    (out_dir / f"{slug}.html").write_text(comp_html, encoding="utf-8")
+                    print(f"Generated {slug}.html")
+                    await asyncio.sleep(1.5)
+
+        base_url = "https://mrpa-sudo9.github.io/prezzimigliori"
+        sitemap_urls = [f"{base_url}/index.html", f"{base_url}/deals.html"]
+        for niche in NICHE_META:
+            sitemap_urls.append(f"{base_url}/{niche}.html")
+            sitemap_urls.append(f"{base_url}/guida-{niche}.html")
+            if len([p for p in all_products if p.category == niche]) >= 4:
+                sitemap_urls.append(f"{base_url}/confronto-{niche}.html")
+        (out_dir / "sitemap.xml").write_text(render_sitemap(sitemap_urls), encoding="utf-8")
+        print(f"Generated sitemap.xml ({len(sitemap_urls)} URLs)")
+
+    print("\n✅ Catalogo completo generato!")
 
 
 if __name__ == "__main__":

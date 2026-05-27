@@ -2,6 +2,8 @@ import asyncio
 import re
 from typing import Any
 
+import feedparser
+
 from scrapers.base import BaseScraper
 
 
@@ -133,6 +135,54 @@ class EbayScraper(BaseScraper):
                     })
             except Exception as e:
                 self.log.warning(f"eBay global deals failed for '{deals_url}': {e}")
+
+        # Fallback: eBay RSS feed (more reliable than scraping)
+        EBAY_RSS_FEEDS = [
+            "https://www.ebay.com/deals/feed/rss",
+            "https://www.ebay.com/rpp/feed/buying-guides",
+        ]
+        for rss_url in EBAY_RSS_FEEDS:
+            try:
+                feed = feedparser.parse(rss_url)
+                for entry in feed.entries[:40]:
+                    url = entry.get("link", "")
+                    title = entry.get("title", "")
+                    if not title or not url:
+                        continue
+                    listing_id = ""
+                    m = re.search(r"/itm/(\d+)", url)
+                    if m:
+                        listing_id = m.group(1)
+                    listing_id = listing_id or str(hash(url))
+                    if listing_id in seen_ids:
+                        continue
+                    seen_ids.add(listing_id)
+
+                    price = 0.0
+                    summary = entry.get("summary", "") or entry.get("description", "") or ""
+                    nums = re.findall(r"(?:€|EUR|\$|USD)\s*(\d+[\.,]?\d*)", title + " " + summary, re.I)
+                    if nums:
+                        price = float(nums[0].replace(",", "."))
+                    else:
+                        nums = re.findall(r"\b(\d+[\.,]\d{2})\b", title + " " + summary)
+                        if nums:
+                            price = float(nums[0].replace(",", "."))
+                        else:
+                            continue
+
+                    if price == 0:
+                        continue
+
+                    products.append({
+                        "name": re.sub(r"\s+", " ", title).strip()[:500],
+                        "price": price,
+                        "url": url,
+                        "sku": listing_id,
+                        "currency": "EUR",
+                        "marketplace": "ebay",
+                    })
+            except Exception as e:
+                self.log.warning(f"eBay RSS failed for '{rss_url}': {e}")
 
         self.log.info(f"[eBay] Scraped {len(products)} products ({len(seen_ids)} unique)")
         return products

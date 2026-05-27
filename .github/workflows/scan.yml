@@ -48,8 +48,31 @@ jobs:
           TELEGRAM_CHANNEL_ID=\${{ secrets.TELEGRAM_CHANNEL_ID }}
           EOF
 
-      - name: Run scan
+      - name: Install catalog deps
+        run: |
+          pip install openai feedparser
+
+      - name: Run scan (hunt → affiliate → content → spotlight → distribute)
         run: dealscout scan
+        continue-on-error: true
+
+      - name: Generate website catalog
+        run: |
+          dealscout scan --content-only 2>/dev/null || true
+          cd scripts && PYTHONPATH=.. python generate_catalog.py 2>&1 | tail -5
+        continue-on-error: true
+
+      - name: Deploy website to prezzimigliori repo
+        if: always()
+        run: |
+          git clone https://github.com/mrpa-sudo9/prezzimigliori.git /tmp/prezzimigliori-deploy
+          cp -r /tmp/prezzimigliori/* /tmp/prezzimigliori-deploy/ 2>/dev/null || true
+          cd /tmp/prezzimigliori-deploy
+          git config user.name "DealScout Bot"
+          git config user.email "bot@dealscout.ai"
+          git add -A
+          git diff --quiet || git commit -m "auto: refresh catalogo prodotti [skip ci]"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mrpa-sudo9/prezzimigliori.git 2>/dev/null || true
         continue-on-error: true
 
       - name: Commit state
