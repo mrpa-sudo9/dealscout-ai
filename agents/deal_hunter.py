@@ -24,6 +24,7 @@ MARKETPLACE_MAP = {
 NICHE_CATEGORIES = {
     "fashion", "toys", "sports", "beauty", "home_kitchen",
     "tech_accessories", "pet_supplies", "health_wellness",
+    "electronics",
 }
 
 NICHE_KEYWORDS = {
@@ -105,6 +106,25 @@ NICHE_KEYWORDS = {
         "health", "wellness", "farmacia", "ortopedia", "riabilitazione",
         "elastico terapia", "fascia massaggio", "guanti massaggio",
         "supporto schiena", "cuscino gravidanza", "allattamento",
+    ],
+    "electronics": [
+        "smartphone", "telefono", "iphone", "samsung galaxy", "xiaomi", "oneplus",
+        "laptop", "notebook", "portatile", "computer", "macbook", "ultrabook",
+        "tablet", "ipad", "kindle", "e-reader", "cuffie", "auricolari", "headset",
+        "airpods", "cuffie wireless", "cuffie bluetooth", "noise cancelling",
+        "smartwatch", "apple watch", "fitness tracker", "smartband",
+        "tv", "televisore", "oled", "qled", "monitor", "schermo pc",
+        "fotocamera", "videocamera", "action camera", "gopro", "fotocamera digitale",
+        "console", "ps5", "xbox", "nintendo", "switch", "playstation",
+        "tablet", "lettore ebook", "display portatile", "chromebook",
+        "elettronica", "elettronico", "digital", "hi-fi", "impianto stereo",
+        "soundbar", "cassa bluetooth", "cassa portatile", "home theater",
+        "router", "modem", "ripetitore wifi", "mesh wifi", "nas",
+        "stampante", "scanner", "proiettore", "videoproiettore",
+        "drone", "quadricottero", "gimbal", "stabilizzatore",
+        "custodia telefono", "cover telefono", "caricabatterie",
+        "base", "entry level", "economico", "fascia media", "fascia alta",
+        "top gamma", "premium", "elite", "lusso",
     ],
 }
 

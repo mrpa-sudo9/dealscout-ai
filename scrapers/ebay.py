@@ -36,6 +36,11 @@ NICHE_SEARCH_TERMS: dict[str, list[str]] = {
         "cuscino+ortopedico", "massaggiatore+muscolare", "integratore+magnesio",
         "bilancia+pesapersone", "tappetino+yoga", "pistola+massaggio",
     ],
+    "electronics": [
+        "smartphone+android", "iphone+nuovo", "laptop+offerte", "tablet+android",
+        "cuffie+wireless", "smartwatch+offerte", "tv+oled+offerta", "monitor+pc",
+        "cuffie+noise+cancelling", "action+camera", "console+ps5", "kindle+offerta",
+    ],
 }
 
 

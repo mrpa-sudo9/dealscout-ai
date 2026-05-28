@@ -44,6 +44,19 @@ AMAZON_CATEGORIES: dict[str, dict[str, str]] = {
         "bestsellers": "/gp/bestsellers/hpc",
         "new_releases": "/gp/new-releases/hpc",
     },
+    "electronics": {
+        "bestsellers": "/gp/bestsellers/electronics",
+        "new_releases": "/gp/new-releases/electronics",
+        "smartphones": "/gp/bestsellers/electronics/2311887031",
+        "tablets": "/gp/bestsellers/electronics/462427031",
+        "headphones": "/gp/bestsellers/electronics/523960031",
+        "smartwatches": "/gp/bestsellers/electronics/462752031",
+        "tvs": "/gp/bestsellers/electronics/13735011",
+        "cameras": "/gp/bestsellers/electronics/412589031",
+        "laptop_media": "/s?i=electronics&rh=n:412587031,p_36:100-300&s=exact-aware-popularity-rank",
+        "smartphone_alta": "/s?i=electronics&rh=n:2311887031,p_36:300-600&s=exact-aware-popularity-rank",
+        "headphones_elite": "/s?i=electronics&rh=n:523960031,p_36:1000-&s=exact-aware-popularity-rank",
+    },
 }
 
 
