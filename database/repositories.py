@@ -156,7 +156,13 @@ class ContentRepository:
         conditions = [Content.is_published.is_(False)]
         if channel:
             conditions.append(Content.channel == channel)
-        stmt = select(Content).where(and_(*conditions)).options(joinedload(Content.deal)).limit(limit)
+        stmt = (
+            select(Content)
+            .where(and_(*conditions))
+            .options(joinedload(Content.deal))
+            .order_by(Deal.discount_percent.desc().nullslast())
+            .limit(limit)
+        )
         result = await self.session.execute(stmt)
         return list(result.unique().scalars().all())
 

@@ -129,6 +129,17 @@ def breadcrumb_html(items: list[dict]) -> str:
     return f'<nav class="breadcrumb" aria-label="Breadcrumb">{crumbs}</nav>'
 
 
+def analytics_gtag(measurement_id: str = "G-XXXXXXXX") -> str:
+    return f"""    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={measurement_id}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){{dataLayer.push(arguments);}}
+      gtag('js', new Date());
+      gtag('config', '{measurement_id}');
+    </script>"""
+
+
 def resource_hints() -> str:
     return """    <link rel="dns-prefetch" href="//images-na.ssl-images-amazon.com">
     <link rel="dns-prefetch" href="//m.media-amazon.com">

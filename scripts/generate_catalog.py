@@ -11,6 +11,7 @@ from scripts.seo import (
     BASE_URL, SITE_NAME, ROBOTS_TXT, NICHE_KEYWORDS, ELECTRONICS_PRICE_TIERS,
     seo_meta_block, json_ld_base, json_ld_breadcrumb, json_ld_webpage,
     json_ld_product, breadcrumb_html, json_ld_article, resource_hints,
+    analytics_gtag,
 )
 
 
@@ -157,6 +158,7 @@ def render_category_page(niche: str, products_with_prices: list) -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {seo}
+{analytics_gtag()}
     <link rel="stylesheet" href="style.css">
 {bcrumb_ld}
 {webpage_ld}
@@ -232,6 +234,7 @@ def render_price_tier_page(tier_key: str, tier: dict, products_with_prices: list
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {seo}
+{analytics_gtag()}
     <link rel="stylesheet" href="style.css">
 {bcrumb_ld}
 {webpage_ld}
@@ -305,6 +308,7 @@ def render_index_page(category_counts: dict, total_products: int, total_deals: i
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {seo}
+{analytics_gtag()}
     <link rel="stylesheet" href="style.css">
     <link rel="alternate" type="application/rss+xml" title="{SITE_NAME} - Offerte" href="{BASE_URL}/feed.xml">
 {org_ld}
@@ -375,6 +379,7 @@ def render_deals_page(deals_with_prices: list) -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {seo}
+{analytics_gtag()}
     <link rel="stylesheet" href="style.css">
 {bcrumb_ld}
 {webpage_ld}
@@ -724,6 +729,7 @@ def render_guide_page(niche: str, guide_html: str, seo_title: str, seo_desc: str
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {seo}
+{analytics_gtag()}
     <link rel="stylesheet" href="style.css">
 {bcrumb_ld}
 {article_ld}
